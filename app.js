@@ -17,25 +17,35 @@ const getData = url => {
 const getNewsFeed = () => {
   const newsFeed = getData(NEWS_URL);
   const newsList = [];
+  let template = `
+    <div class="container mx-auto p-4">
+      <h1>Hacker News</h1>
+      <ul>
+       {{__new_feed__}}
+      </ul>
+      <div>
+        <a href="#/page/{{__prev_page__}}">이전 페이지</a>
+        <a href="#/page/{{__next_page__}}">다음 페이지</a>
+      </div>
+    </div>`;
 
   newsList.push('<ul>');
+
   for (let i = (store.currentPage - 1) * 10; i < store.currentPage * 10; i++) {
     newsList.push(`
         <li>
             <a href='#/show/${newsFeed[i].id}'>
                 ${newsFeed[i].title} (${newsFeed[i].comments_count})
             </a>
-        </li>`);
+        </li>
+      `);
   }
-  newsList.push('</ul>');
-  newsList.push(`
-    <div>
-        <a href='#/page/${store.currentPage > 1 ? store.currentPage - 1 : 1}'>이전 페이지</a>
-         <a href='#/page/${store.currentPage < 3 ? store.currentPage + 1 : 3}'>다음 페이지</a>
-    </div>
-  `);
 
-  container.innerHTML = newsList.join('');
+  template = template.replace('{{__new_feed__}}', newsList.join(''));
+  template = template.replace('{{__prev_page__}}', `${store.currentPage > 1 ? store.currentPage - 1 : 1}`);
+  template = template.replace('{{__next_page__}}', `${store.currentPage < 3 ? store.currentPage + 1 : 3}`);
+
+  container.innerHTML = template;
 };
 
 const getNewsDetail = () => {

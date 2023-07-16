@@ -3,15 +3,28 @@ type Store = {
   feeds: NewsFeed[];
 };
 
-type NewsFeed = {
+type News = {
   id: number;
-  comment_count: number;
+  time_ago: string;
+  title: string;
   url: string;
   user: string;
-  time_age: string;
+  content: string;
+};
+
+type NewsFeed = News & {
+  comments_count: number;
   points: number;
-  title: string;
   read?: boolean;
+};
+
+type NewsDetail = News & {
+  comments: NewsComment[];
+};
+
+type NewsComment = News & {
+  comments: NewsComment[];
+  level: number;
 };
 
 const container: HTMLElement | null = document.getElementById('root');
@@ -23,14 +36,14 @@ const store: Store = {
   feeds: [],
 };
 
-const getData = (url: string) => {
+const getData = <AjaxResponse>(url: string): AjaxResponse => {
   ajax.open('GET', url, false);
   ajax.send();
 
   return JSON.parse(ajax.response);
 };
 
-const setFeeds = (feeds: any) => {
+const setFeeds = (feeds: NewsFeed[]): NewsFeed[] => {
   for (let i = 0; i < feeds.length; i++) {
     feeds[i].read = false;
   }
@@ -38,12 +51,35 @@ const setFeeds = (feeds: any) => {
   return feeds;
 };
 
-const updateView = (html: string) => {
+const makeComment = (comments: any): string => {
+  const commentString = [];
+
+  for (let i = 0; i < comments.length; i++) {
+    const comment: NewsComment = comments[i];
+    commentString.push(`
+        <div style="padding-left: ${comment.level * 40}px;" class="mt-4">
+          <div class="text-gray-400">
+            <i class="fa fa-sort-up mr-2"></i>
+            <strong>${comments[i].user}</strong> ${comments[i].time_ago}
+          </div>
+          <p class="text-gray-700">${comments[i].content}</p>
+        </div>      
+      `);
+
+    if (comments[i].comments.length > 0) {
+      commentString.push(makeComment(comments[i].comments));
+    }
+  }
+
+  return commentString.join('');
+};
+
+const updateView = (html: string): void => {
   container ? (container.innerHTML = html) : console.log('error');
 };
 
 const getNewsFeed = () => {
-  const newsFeed = store.feeds.length === 0 ? (store.feeds = setFeeds(getData(NEWS_URL))) : store.feeds;
+  const newsFeed = store.feeds.length === 0 ? (store.feeds = setFeeds(getData<NewsFeed[]>(NEWS_URL))) : store.feeds;
   const newsList = [];
   let template = `
     <div class="bg-gray-600 min-h-screen">
@@ -101,9 +137,9 @@ const getNewsFeed = () => {
   updateView(template);
 };
 
-const getNewsDetail = () => {
+const getNewsDetail = (): void => {
   const id = location.hash.substr(7);
-  const newsContent = getData(CONTENT_URL.replace('@id', id));
+  const newsContent = getData<NewsDetail>(CONTENT_URL.replace('@id', id));
   let template = `
     <div class="bg-gray-600 min-h-screen pb-8">
       <div class="bg-white text-xl">
@@ -140,32 +176,10 @@ const getNewsDetail = () => {
     }
   }
 
-  const makeComment = (comments: any, called = 0): any => {
-    const commentString = [];
-
-    for (let i = 0; i < comments.length; i++) {
-      commentString.push(`
-        <div style="padding-left: ${called * 40}px;" class="mt-4">
-          <div class="text-gray-400">
-            <i class="fa fa-sort-up mr-2"></i>
-            <strong>${comments[i].user}</strong> ${comments[i].time_ago}
-          </div>
-          <p class="text-gray-700">${comments[i].content}</p>
-        </div>      
-      `);
-
-      if (comments[i].comments.length > 0) {
-        commentString.push(makeComment(comments[i].comments, called + 1));
-      }
-    }
-
-    return commentString.join('');
-  };
-
   updateView(template.replace('{{__comments__}}', makeComment(newsContent.comments)));
 };
 
-const router = () => {
+const router = (): void => {
   const routePath = location.hash;
 
   if (routePath === '') {

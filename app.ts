@@ -36,12 +36,34 @@ const store: Store = {
   feeds: [],
 };
 
-const getData = <AjaxResponse>(url: string): AjaxResponse => {
-  ajax.open('GET', url, false);
-  ajax.send();
+class Api {
+  url: string;
+  ajax: XMLHttpRequest;
 
-  return JSON.parse(ajax.response);
-};
+  constructor(url: string) {
+    this.url = url;
+    this.ajax = new XMLHttpRequest();
+  }
+
+  getResponse = <AjaxResponse>(): AjaxResponse => {
+    ajax.open('GET', this.url, false);
+    ajax.send();
+
+    return JSON.parse(ajax.response);
+  };
+}
+
+class NewsFeedApi extends Api {
+  getData = (): NewsFeed[] => {
+    return this.getResponse<NewsFeed[]>();
+  };
+}
+
+class NewsDetailApi extends Api {
+  getData = (): NewsDetail => {
+    return this.getResponse<NewsDetail>();
+  };
+}
 
 const setFeeds = (feeds: NewsFeed[]): NewsFeed[] => {
   for (let i = 0; i < feeds.length; i++) {
@@ -78,8 +100,9 @@ const updateView = (html: string): void => {
   container ? (container.innerHTML = html) : console.log('error');
 };
 
-const getNewsFeed = () => {
-  const newsFeed = store.feeds.length === 0 ? (store.feeds = setFeeds(getData<NewsFeed[]>(NEWS_URL))) : store.feeds;
+const getNewsFeed = (): void => {
+  const api = new NewsFeedApi(NEWS_URL);
+  const newsFeed = store.feeds.length === 0 ? (store.feeds = setFeeds(api.getData())) : store.feeds;
   const newsList = [];
   let template = `
     <div class="bg-gray-600 min-h-screen">
@@ -139,7 +162,10 @@ const getNewsFeed = () => {
 
 const getNewsDetail = (): void => {
   const id = location.hash.substr(7);
-  const newsContent = getData<NewsDetail>(CONTENT_URL.replace('@id', id));
+
+  const api = new NewsDetailApi(CONTENT_URL.replace('@id', id));
+  const newsContent = api.getData();
+
   let template = `
     <div class="bg-gray-600 min-h-screen pb-8">
       <div class="bg-white text-xl">
